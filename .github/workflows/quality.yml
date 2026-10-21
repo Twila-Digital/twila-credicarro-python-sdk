@@ -1,0 +1,45 @@
+name: Quality
+
+on:
+  push:
+    branches: [production]
+  pull_request:
+    branches: [production]
+
+permissions:
+  contents: read
+
+jobs:
+  codacy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - run: pip install -e ".[dev]"
+
+      - name: Codacy Analysis CLI
+        uses: codacy/codacy-analysis-cli-action@v4
+        with:
+          output: results.sarif
+          format: sarif
+          tool: pylint
+          gh-code-scanning-compat: true
+          max-allowed-issues: 2147483647
+
+      - name: Merge SARIF runs
+        run: |
+          sudo chown "$(id -u):$(id -g)" results.sarif
+          python scripts/merge_sarif_runs.py results.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
+          category: quality-codacy
