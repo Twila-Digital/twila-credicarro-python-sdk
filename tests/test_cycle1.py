@@ -55,8 +55,6 @@ PROPOSAL_ID = "bea8d060-f93d-48eb-b6c4-45f64483cdd9"
 MAX_BYTES = 10 * 1024 * 1024
 
 
-# --- E1: circuit breaker nunca fica preso -----------------------------------------------------------------------
-
 
 def test_breaker_recovers_after_a_trial_that_ends_with_authentication_error(
     mock_router: respx.MockRouter, token_route: respx.Route
@@ -77,15 +75,14 @@ def test_breaker_recovers_after_a_trial_that_ends_with_authentication_error(
             client.proposals.get(PROPOSAL_ID)
 
     with pytest.raises(CredicarroTimeoutError, match="circuit breaker"):
-        client.proposals.get(PROPOSAL_ID)  # circuito aberto: nem chega à rede
+        client.proposals.get(PROPOSAL_ID)
     assert route.call_count == 2
 
     time.sleep(0.4)
 
-    with pytest.raises(CredicarroAuthenticationError):  # meia-abertura: 401, renova, 401 de novo
+    with pytest.raises(CredicarroAuthenticationError):
         client.proposals.get(PROPOSAL_ID)
 
-    # O teste de meia-abertura foi encerrado pela exceção: a próxima chamada pode tentar de novo e fechar o circuito.
     assert client.proposals.get(PROPOSAL_ID).id == PROPOSAL_ID
     assert client.proposals.get(PROPOSAL_ID).id == PROPOSAL_ID
     client.close()
@@ -119,8 +116,6 @@ def test_breaker_trial_is_released_by_any_exception() -> None:
 
     assert pipeline.execute(False, lambda: ApiResponse(200, None, {})).status_code == 200
 
-
-# --- E3 / sentinel: falha de rede sanitizada ---------------------------------------------------------------------
 
 
 def _connect_error() -> httpx.ConnectError:
@@ -193,8 +188,6 @@ def test_token_provider_does_not_expose_the_token_or_secret_in_repr() -> None:
     assert "token-do-cache" not in repr(provider._cached)
     assert "segredo-x" not in repr(vars(provider))
 
-
-# --- Retry-After -------------------------------------------------------------------------------------------------
 
 
 def test_retry_after_larger_than_the_budget_raises_rate_limit_without_waiting(
@@ -278,12 +271,10 @@ def test_sleep_is_limited_to_the_remaining_budget() -> None:
     try:
         pipeline.execute(True, attempt)
     except CredicarroTimeoutError:
-        pass  # o prazo estourou durante o backoff (ou devolveu o 503); o que não pode é dormir os 30 s+ do backoff
+        pass
 
     assert time.monotonic() - started < 2
 
-
-# --- Orçamento do upload, redirects, corpo serializado uma vez ---------------------------------------------------
 
 
 def test_document_upload_budget_is_attempt_timeout_times_attempts(
@@ -303,7 +294,7 @@ def test_document_upload_budget_is_attempt_timeout_times_attempts(
         client.proposals.get(PROPOSAL_ID)
     client.close()
 
-    assert execute.call_args_list[0].args[2] == 180_000  # 60 s × 3 tentativas
+    assert execute.call_args_list[0].args[2] == 180_000
     assert execute.call_args_list[1].args[2] is None
 
 
@@ -364,8 +355,6 @@ def test_request_body_is_serialized_once_and_replayed(mock_router: respx.MockRou
     assert route.calls[0].request.headers["content-type"] == "application/json"
 
 
-# --- Idempotency-Key explícita -----------------------------------------------------------------------------------
-
 
 @pytest.mark.parametrize("key", ["", " ", "   ", "chave-ç", "chave\n", "chave\tx", "a" * 201, "chave\x7f"])
 def test_invalid_explicit_idempotency_keys_are_rejected_before_any_request(
@@ -397,8 +386,6 @@ def test_valid_explicit_idempotency_keys(mock_router: respx.MockRouter, token_ro
     assert route.calls.last.request.headers["idempotency-key"] == key
 
 
-# --- Token: validade sem expira_em --------------------------------------------------------------------------------
-
 
 @pytest.mark.parametrize("seconds,expected", [(3600, 3540), (100, 50), (120, 60), (61, 30.5), (30, 15)])
 def test_token_lifetime_without_expira_em(seconds: int, expected: float) -> None:
@@ -413,8 +400,6 @@ def test_token_lifetime_without_expira_em(seconds: int, expected: float) -> None
     assert provider._cached is not None
     assert provider._cached.expires_at == pytest.approx(1000.0 + expected)
 
-
-# --- PII mascarada em repr ---------------------------------------------------------------------------------------
 
 
 def _upsert() -> UpsertCustomerRequest:
@@ -507,8 +492,6 @@ def test_participant_state_masks_cpf_but_keeps_cnpj() -> None:
     assert "11222333000181" in repr(ProposalParticipantState(document="11222333000181"))
 
 
-# --- DocumentFile ------------------------------------------------------------------------------------------------
-
 
 def _b64(size: int) -> str:
     return base64.b64encode(b"\x00" * size).decode()
@@ -577,8 +560,6 @@ def test_from_file_does_not_trust_the_reported_size(tmp_path: Any) -> None:
     with pytest.raises(ValueError, match="10 MiB"):
         DocumentFile.from_file(path)
 
-
-# --- Webhook -----------------------------------------------------------------------------------------------------
 
 SECRET = "segredo-de-exemplo"
 TIMESTAMP = 1715792400
@@ -655,7 +636,7 @@ def test_authorization_compares_digests_regardless_of_length() -> None:
     assert verify_webhook_authorization(expected, "") is False
     assert verify_webhook_authorization("", "") is False
     assert verify_webhook_authorization(None, None) is False
-    assert len(hashlib.sha256(expected.encode()).digest()) == 32  # compara SHA-256: tamanho fixo
+    assert len(hashlib.sha256(expected.encode()).digest()) == 32
 
 
 def test_event_and_function_list_pending_actions_for_the_detailed_payload() -> None:

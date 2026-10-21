@@ -100,8 +100,6 @@ def test_token_network_failure_is_a_timeout_error(mock_router: respx.MockRouter)
     client.close()
 
 
-# --- serialização: a máscara é só de repr -------------------------------------------------------------------------
-
 
 def _details() -> ProposalDetails:
     return ProposalDetails(

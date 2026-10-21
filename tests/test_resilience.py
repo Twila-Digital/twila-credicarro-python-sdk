@@ -141,11 +141,10 @@ def test_total_timeout_raises_timeout_error() -> None:
         calls["count"] += 1
         raise httpx.ConnectError("boom")
 
-    # O backoff mínimo (100 ms) já estoura o prazo total de 50 ms: a próxima tentativa nem começa.
     with pytest.raises(CredicarroTimeoutError):
         pipeline.execute(True, attempt)
 
-    assert calls["count"] >= 1  # o backoff é limitado ao orçamento restante (nº de tentativas depende do relógio)
+    assert calls["count"] >= 1
 
 
 def test_circuit_breaker_opens_after_failure_threshold_and_blocks_next_call() -> None:

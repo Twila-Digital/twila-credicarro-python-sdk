@@ -618,7 +618,6 @@ def _pending_action(
     return PendingAction(participant, active.step, kind, document_types)
 
 
-# Etapas em que o integrador age: o que fazer e, nas de documento, o status que lista os tipos a enviar.
 _INTEGRATOR_ACTIONS: dict[ProposalStep, tuple[PendingActionKind, Optional[DocumentStatus]]] = {
     ProposalStep.DOCUMENT_SUBMISSION: (PendingActionKind.SEND_DOCUMENTS, DocumentStatus.PENDING),
     ProposalStep.DOCUMENT_CORRECTION: (PendingActionKind.CORRECT_DOCUMENTS, DocumentStatus.INVALID),

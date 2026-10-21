@@ -8,7 +8,6 @@ from ..masking import SecretStr
 from .credentials import TokenCredentials
 from .token_api_client import TokenApiClient
 
-# `expira_em` já vem com 60 s de margem. Sem ele: `agora + max(expira_em_segundos / 2, expira_em_segundos - 60)`.
 _CLOCK_SKEW_SECONDS = 60
 _DEFAULT_LIFETIME_SECONDS = 3600
 
@@ -16,7 +15,7 @@ _DEFAULT_LIFETIME_SECONDS = 3600
 @dataclass
 class _CachedToken:
     value: str
-    expires_at: float  # epoch em segundos (UTC)
+    expires_at: float
 
 
 class AccessTokenProvider:

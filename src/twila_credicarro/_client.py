@@ -19,8 +19,6 @@ class CredicarroClient:
     def __init__(self, options: CredicarroClientOptions) -> None:
         resolved = resolve_client_options(options)
 
-        # Um único httpx.Client (pool de conexões e contexto TLS) para o token e para as chamadas da API.
-        # Redirecionamentos desligados: um 3xx vira CredicarroApiError (o Authorization não segue para outro host).
         self._http = httpx.Client(
             headers={"User-Agent": f"twila-credicarro-python/{__version__}", "Accept": "application/json"},
             follow_redirects=False,

@@ -111,7 +111,6 @@ class ResiliencePipeline:
 
             if network_failure is not None:
                 if not can_retry:
-                    # Levantada fora do `except`: sem __context__/__cause__ com o erro (e a requisição) do httpx.
                     raise CredicarroTimeoutError(
                         f"Falha de rede ou timeout ao chamar a API do Credicarro ({network_failure})."
                     )
@@ -131,11 +130,9 @@ class ResiliencePipeline:
         try:
             response = attempt()
         except NETWORK_ERRORS as error:
-            # Só o nome do tipo sobrevive: o objeto httpx referencia a requisição (Authorization e corpo).
             self._circuit_breaker.on_failure()
             return None, type(error).__name__
         except BaseException:
-            # Exceção que não é de rede: encerra o teste de meia-abertura sem veredito e propaga.
             self._circuit_breaker.release()
             raise
 
@@ -152,7 +149,6 @@ class ResiliencePipeline:
 
         retry_after = retry_after_seconds(response.headers)
         if retry_after is not None and retry_after > remaining:
-            # Esperar passaria do orçamento: devolve já a resposta (429 vira RateLimit com retry_after_ms).
             return None
 
         return retry_after if retry_after is not None else self._backoff_seconds(attempt_number)

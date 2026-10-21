@@ -33,7 +33,6 @@ class ProposalsClient:
     ) -> None:
         self._executor = executor
         self._document_upload_attempt_timeout_ms = document_upload_attempt_timeout_ms
-        # Orçamento total do upload: tempo de uma tentativa de upload × número de tentativas (padrão 60 s × 3).
         self._document_upload_total_timeout_ms = document_upload_attempt_timeout_ms * max(1, max_retry_attempts)
 
     def create(self, request: CreateProposalRequest) -> str:

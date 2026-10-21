@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Optional
 
-# Acima disso o valor é tratado como "esperar muito": limitado aqui, antes de qualquer conversão para ms/duração.
 MAX_RETRY_AFTER_SECONDS = 86_400.0
 
 

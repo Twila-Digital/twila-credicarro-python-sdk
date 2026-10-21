@@ -99,7 +99,6 @@ __all__ = [
     "Identifier",
     "ListRequest",
     "PagedResult",
-    # errors
     "CredicarroError",
     "CredicarroApiError",
     "CredicarroAuthenticationError",
@@ -111,14 +110,12 @@ __all__ = [
     "CredicarroWebhookSignatureError",
     "ProblemDetails",
     "ProblemError",
-    # customers
     "CustomersClient",
     "CreateCustomerRequest",
     "CustomerAddress",
     "OccupationType",
     "ProfessionalData",
     "UpsertCustomerRequest",
-    # simulations
     "SimulationsClient",
     "CreateFinancingSimulationRequest",
     "CreateRefinancingSimulationRequest",
@@ -131,7 +128,6 @@ __all__ = [
     "SimulationTransaction",
     "SimulationType",
     "SimulationVehicle",
-    # proposals
     "ProposalsClient",
     "ActionOwner",
     "ActiveStep",
@@ -158,13 +154,11 @@ __all__ = [
     "StepSituation",
     "VehicleDetails",
     "get_pending_actions",
-    # v1
     "V1Client",
     "V1ProposalsClient",
     "V1SimulationsClient",
     "CreateFinancingSimulationV1Request",
     "CreateRefinancingSimulationV1Request",
-    # webhooks
     "WebhooksClient",
     "CreateWebhookRequest",
     "CreateWebhookResult",

@@ -130,9 +130,9 @@ def test_empty_secret_is_always_invalid(secret: Any) -> None:
         "+1715792400",
         "1715792400.5",
         "1_715_792_400",
-        "17157924000",  # 11 dígitos
-        "１７１５７９２４００",  # dígitos full-width (unicode)
-        "١٧١٥٧٩٢٤٠٠",  # dígitos arábico-índicos
+        "17157924000",
+        "１７１５７９２４００",
+        "١٧١٥٧٩٢٤٠٠",
         "1715792400\n",
     ],
 )

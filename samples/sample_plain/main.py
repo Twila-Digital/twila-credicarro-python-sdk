@@ -29,7 +29,6 @@ def main() -> None:
     ) as client:
         cpf = "12345678909"
 
-        # Sem Idempotency-Key a rota unificada cria ou atualiza o cliente (upsert).
         client.customers.upsert(
             UpsertCustomerRequest(
                 cpf=cpf,

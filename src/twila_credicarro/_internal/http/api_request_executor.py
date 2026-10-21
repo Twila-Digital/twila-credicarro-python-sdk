@@ -76,10 +76,8 @@ class ApiRequestExecutor:
         explicit_idempotency_key: Optional[str],
         total_timeout_ms: Optional[int],
     ) -> ApiResponse:
-        # A chave nasce aqui, fora do laço de tentativas: todas as tentativas reaproveitam a mesma.
         idempotency_key = self._resolve_idempotency_key(method, path, explicit_idempotency_key)
 
-        # O corpo é serializado uma única vez: tentativas e o replay do 401 reaproveitam os mesmos bytes.
         content = None if body is None else json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
         retry_safe = is_retry_safe(method, path, idempotency_key is not None)
@@ -119,7 +117,6 @@ class ApiRequestExecutor:
         if response.status_code != 401:
             return response
 
-        # Renova e repete uma única vez. O cache só é descartado se o token rejeitado ainda for o atual.
         self._token_provider.invalidate(token)
         new_token = self._token_provider.get_token()
         retried = self._send_once(method, path, content, idempotency_key, attempt_timeout_ms, new_token)

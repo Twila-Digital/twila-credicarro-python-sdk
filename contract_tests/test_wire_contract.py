@@ -50,7 +50,6 @@ from twila_credicarro._internal.mapping.paged_mapper import paged_result_from_wi
 from twila_credicarro._internal.mapping.wire import as_dict, req_str
 from twila_credicarro.errors.problem_details import parse_problem_details
 
-# Todas as operações que o SDK expõe: (método, caminho do OpenAPI).
 SDK_OPERATIONS = {
     ("post", "/v1/authentication/accesstoken"),
     ("post", "/v1/customer"),
@@ -81,7 +80,6 @@ SDK_OPERATIONS = {
     ("post", "/v2/proposal/{propostaId}/document"),
 }
 
-# Parâmetros de query que o SDK envia.
 QUERY_PARAMETERS = {
     ("get", "/v1/proposal"): {"pagina_inicial", "limite"},
     ("get", "/v1/proposal/simulation"): {"pagina_inicial", "limite"},
@@ -119,7 +117,6 @@ _UPLOAD = ProposalDocumentUpload(
     file=DocumentFile.from_bytes(b"%PDF", "laudo.pdf"),
 )
 
-# Requisições do SDK: (método, caminho, corpo que o mapper produz).
 REQUESTS: list[tuple[str, str, dict[str, Any]]] = [
     ("post", "/v1/customer", customer_mapper.create_customer_request_to_wire(CreateCustomerRequest(**_PERSONAL))),
     (
@@ -275,7 +272,6 @@ def test_idempotency_key_policy_matches_the_openapi(spec: dict[str, Any], method
     sdk_path = path.replace("{propostaId}", "abc").lstrip("/")
 
     if path == "/v1/customer/unified":
-        # Aceita a chave, mas o SDK nunca a gera sozinho: com chave a rota só cria; sem chave é upsert.
         assert header is not None
         assert requires_idempotency_key("POST", sdk_path) is False
         return
@@ -317,7 +313,6 @@ def _paged_webhooks(wire: Any) -> Any:
     return paged_result_from_wire(wire, webhook_mapper.webhook_to_public)
 
 
-# Respostas lidas pelo SDK: (método, caminho, status, função que lê o JSON).
 RESPONSES: list[tuple[str, str, str, Callable[[Any], Any], frozenset[str]]] = [
     ("post", "/v1/authentication/accesstoken", "200", _token, frozenset()),
     ("post", "/v1/customer", "200", _customer_id, frozenset()),

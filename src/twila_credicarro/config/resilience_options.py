@@ -13,7 +13,6 @@ class CredicarroResilienceOptions:
     circuit_breaker_sampling_duration_ms: int = 30_000
     circuit_breaker_minimum_throughput: int = 10
     circuit_breaker_break_duration_ms: int = 15_000
-    # A documentação manda repetir `500` com a mesma Idempotency-Key — só vale para requisições retry-safe.
     retry_on_500: bool = True
     disable_automatic_idempotency_key: bool = False
 

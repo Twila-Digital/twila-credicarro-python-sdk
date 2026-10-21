@@ -46,7 +46,6 @@ def verify_webhook_authorization(received_header: Optional[str], expected_header
     if not received_header or not expected_header:
         return False
 
-    # Compara os SHA-256: tamanho fixo, então o tempo não revela o tamanho do valor esperado.
     received_digest = hashlib.sha256(received_header.encode("utf-8")).digest()
     expected_digest = hashlib.sha256(expected_header.encode("utf-8")).digest()
     return hmac.compare_digest(received_digest, expected_digest)
@@ -150,7 +149,6 @@ def _parse_signature_header(signature_header: Optional[str]) -> Optional[tuple[s
                 return None
             timestamp = value
         elif key == "v1":
-            # v1 repetido (ou fora do formato hexadecimal de 64 caracteres) invalida o cabeçalho.
             if signature is not None or _SIGNATURE_PATTERN.fullmatch(value) is None:
                 return None
             signature = value

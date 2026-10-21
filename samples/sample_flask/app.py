@@ -43,7 +43,6 @@ class MemoryDedupStore:
 
 
 def create_app() -> Flask:
-    # Obrigatório: sem segredo a aplicação não sobe (HMAC com chave vazia é forjável).
     signing_secret = os.environ.get("CREDICARRO_WEBHOOK_SECRET")
     if not signing_secret:
         raise RuntimeError("CREDICARRO_WEBHOOK_SECRET é obrigatória")
@@ -57,30 +56,28 @@ def create_app() -> Flask:
         )
     )
     dedup = MemoryDedupStore()
-    # Fila em memória só para o exemplo: em produção use fila durável (SQS, RabbitMQ, Celery com broker, outbox).
     executor = ThreadPoolExecutor(max_workers=4)
 
     app = Flask(__name__)
-    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024  # 1 MiB: corpo maior vira 413 sem ser lido
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
 
     @app.errorhandler(413)
     def payload_too_large(_error: Exception) -> Response:
         return Response(status=413)
 
     def process(proposal_id: str) -> None:
-        # Entregas chegam fora de ordem: consulte a proposta para o estado mais recente.
         proposal = client.proposals.get(proposal_id)
         print(f"proposta {proposal.id}: {len(proposal.get_pending_actions())} ação(ões) pendente(s)")
 
     def log_failure(proposal_id: str, future: "Future[None]") -> None:
         error = future.exception()
-        if error is not None:  # sem PII: só o id da proposta e o tipo do erro
+        if error is not None:
             code = error.error_code if isinstance(error, CredicarroApiError) else None
             print(f"falha ao processar webhook | Proposta: {proposal_id} | {type(error).__name__} | {code}")
 
     @app.post("/webhooks/credicarro")
     def credicarro_webhook() -> Response:
-        raw = request.get_data()  # corpo bruto, antes de qualquer parse
+        raw = request.get_data()
         signature = request.headers.get("X-CrediCarro-Signature", "")
 
         if expected_authorization and not verify_webhook_authorization(
@@ -94,19 +91,19 @@ def create_app() -> Flask:
         try:
             event = parse_webhook_event(raw, signature, signing_secret)
         except CredicarroWebhookSignatureError:
-            return Response(status=400)  # corpo ilegível ou sem id_proposta válido: repetir não adianta
+            return Response(status=400)
 
-        idempotency_key = request.headers.get("Idempotency-Key", "")  # {id_mensagem}:{id_webhook}
+        idempotency_key = request.headers.get("Idempotency-Key", "")
         if idempotency_key and not dedup.claim(idempotency_key):
-            return Response(status=200)  # entrega repetida: já foi aceita
+            return Response(status=200)
 
         try:
-            future = executor.submit(process, event.proposal_id)  # só responde 2xx depois de enfileirar
+            future = executor.submit(process, event.proposal_id)
             future.add_done_callback(lambda done: log_failure(event.proposal_id, done))
         except RuntimeError:
             if idempotency_key:
                 dedup.release(idempotency_key)
-            return Response(status=503)  # a Credicarro repete a entrega
+            return Response(status=503)
 
         return Response(status=200)
 
@@ -114,4 +111,4 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
-    create_app().run()  # sem debug=True: o modo debug expõe o depurador interativo
+    create_app().run()

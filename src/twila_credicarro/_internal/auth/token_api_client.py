@@ -23,8 +23,6 @@ class TokenApiClient:
 
     def generate(self, credentials: TokenCredentials) -> dict[str, Any]:
         def attempt() -> ApiResponse:
-            # O corpo (com o segredo) é montado aqui, sem variável local. Falha de rede vira
-            # CredicarroTimeoutError sanitizado dentro do pipeline.
             return to_api_response(
                 self._http.post(self._url, json=credentials.as_request_body(), timeout=self._timeout_seconds)
             )
@@ -41,7 +39,6 @@ class TokenApiClient:
                     status_code=400,
                     error_code=getattr(failure, "error_code", None),
                 )
-            # 3xx, 5xx (depois das tentativas) e demais status: erro de API com status e `tipo`.
             raise failure
 
         result = response.body

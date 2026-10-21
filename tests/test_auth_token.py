@@ -72,7 +72,7 @@ def test_token_is_cached_until_expira_em() -> None:
     assert provider.get_token() == "t1"
     assert api.calls == 1
 
-    clock_value[0] = now.timestamp() + 3541  # passou de 12:59:00
+    clock_value[0] = now.timestamp() + 3541
     assert provider.get_token() == "t2"
     assert api.calls == 2
 
@@ -85,7 +85,7 @@ def test_token_without_expira_em_uses_expira_em_segundos_minus_60() -> None:
     assert provider.get_token() == "t1"
     clock_value[0] += 3539
     assert provider.get_token() == "t1"
-    clock_value[0] += 2  # 3541 s > 3600 - 60
+    clock_value[0] += 2
     assert provider.get_token() == "t2"
     assert api.calls == 2
 
@@ -98,7 +98,7 @@ def test_invalidate_with_stale_token_keeps_newer_cached_token() -> None:
     provider.invalidate("t1")
     assert provider.get_token() == "t2"
 
-    provider.invalidate("t1")  # token rejeitado já não é o atual: não descarta o cache
+    provider.invalidate("t1")
     assert provider.get_token() == "t2"
     assert api.calls == 2
 
@@ -134,7 +134,7 @@ def test_client_reuses_token_across_calls(mock_router: respx.MockRouter, token_r
     assert token_route.call_count == 1
     request = token_route.calls.last.request
     assert request.headers["content-type"].startswith("application/json")
-    assert b"test-client-secret" in request.content  # o segredo só vai no corpo do token
+    assert b"test-client-secret" in request.content
 
 
 def test_401_refreshes_token_and_retries_once(mock_router: respx.MockRouter) -> None:
