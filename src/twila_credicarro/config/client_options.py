@@ -78,7 +78,7 @@ def _validate(options: CredicarroClientOptions) -> None:
             "resilience.attempt_timeout_ms não pode ser maior que resilience.total_timeout_ms."
         )
 
-    if not (0 < resilience.circuit_breaker_failure_ratio <= 1):
+    if not 0 < resilience.circuit_breaker_failure_ratio <= 1:
         raise CredicarroConfigurationError(
             "resilience.circuit_breaker_failure_ratio deve estar entre 0 (exclusivo) e 1 (inclusivo)."
         )

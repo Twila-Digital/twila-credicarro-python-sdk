@@ -64,7 +64,7 @@ class ApiRequestExecutor:
 
     @staticmethod
     def ensure_success(response: ApiResponse) -> None:
-        if not (200 <= response.status_code < 300):
+        if not 200 <= response.status_code < 300:
             raise exception_from_response(response)
 
     def _send(

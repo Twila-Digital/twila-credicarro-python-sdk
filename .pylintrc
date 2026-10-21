@@ -1,0 +1,25 @@
+# Pylint (usado pelo Codacy) alinhado às ferramentas do projeto: ruff (estilo, imports, tamanho de linha) e
+# mypy --strict (tipos). As regras desligadas abaixo duplicam essas ferramentas ou são falsos positivos de versões
+# antigas do Pylint com a sintaxe de tipos do Python 3.9+ (genéricos da PEP 585, como dict[str, str], e Protocol).
+
+[MASTER]
+ignore=tests,contract_tests,samples
+
+[MESSAGES CONTROL]
+disable=
+    missing-docstring,
+    bad-continuation,
+    unsubscriptable-object,
+    no-name-in-module,
+    too-few-public-methods
+
+[FORMAT]
+max-line-length=120
+
+[BASIC]
+# Atributos curtos da API pública (client.v1) e aliases de tipo em PascalCase (Identifier, DateLike).
+good-names=v1,i,j,k,_
+const-rgx=(([A-Z_][A-Z0-9_]*)|([A-Z][a-zA-Z0-9]+)|(__.*__))$
+
+[DESIGN]
+max-args=7

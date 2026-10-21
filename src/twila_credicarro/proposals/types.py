@@ -573,6 +573,8 @@ class ProposalSummary:
 class _HasParticipants(Protocol):
     """`ProposalDetails` ou o evento detalhado do webhook (`ProposalWebhookEvent`)."""
 
+    # pylint: disable=multiple-statements,pointless-statement  # corpos `...` de Protocol
+
     @property
     def buyer(self) -> Optional[ProposalParticipantState]: ...
 

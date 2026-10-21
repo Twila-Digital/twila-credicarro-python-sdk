@@ -31,7 +31,7 @@ class TokenApiClient:
 
         response = self._pipeline.execute(True, attempt)
 
-        if not (200 <= response.status_code < 300):
+        if not 200 <= response.status_code < 300:
             failure = exception_from_response(response)
             if isinstance(failure, CredicarroAuthenticationError):
                 raise failure

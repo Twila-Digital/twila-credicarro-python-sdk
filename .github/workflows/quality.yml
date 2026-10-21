@@ -25,7 +25,7 @@ jobs:
       - run: pip install -e ".[dev]"
 
       - name: Codacy Analysis CLI
-        uses: codacy/codacy-analysis-cli-action@v4
+        uses: codacy/codacy-analysis-cli-action@562ee3e92b8e92df8b67e0a5ff8aa8e261919c08 # v4.4.7
         with:
           output: results.sarif
           format: sarif
