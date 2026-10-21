@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .._internal.http.api_request_executor import ApiRequestExecutor
-from .._internal.http.query_string import QueryStringBuilder
+from .._internal.http.query_string import QueryStringBuilder, paged_path
 from .._internal.mapping.paged_mapper import paged_result_from_wire
 from .._internal.mapping.simulation_mapper import (
     financing_range_to_public,
@@ -81,12 +81,7 @@ class SimulationsClient:
         """Lista as simulações do parceiro, paginadas (`GET v1/proposal/simulation`)."""
         request = request or ListRequest()
 
-        path = (
-            QueryStringBuilder()
-            .add("pagina_inicial", request.page)
-            .add("limite", request.page_size)
-            .build("v1/proposal/simulation")
-        )
+        path = paged_path("v1/proposal/simulation", request.page, request.page_size)
         response = self._executor.get(path)
         ApiRequestExecutor.ensure_success(response)
 

@@ -8,7 +8,7 @@ from ...config.resilience_options import CredicarroResilienceOptions
 from ...errors.timeout_error import CredicarroTimeoutError
 from ..http.api_response import ApiResponse
 from ..http.retry_after import retry_after_seconds
-from .transient_failure_classifier import is_network_error, is_transient_response
+from .transient_failure_classifier import NETWORK_ERRORS, is_transient_response
 
 
 class _CircuitBreaker:
@@ -105,59 +105,57 @@ class ResiliencePipeline:
                     "O circuit breaker está aberto — chamadas recentes falharam de forma consistente."
                 )
 
-            response: Optional[ApiResponse] = None
-            network_failure: Optional[str] = None
-            recorded = False
-
-            try:
-                response = attempt()
-            except Exception as error:
-                if not is_network_error(error):
-                    raise
-
-                # Só o nome do tipo sobrevive: o objeto httpx referencia a requisição (Authorization e corpo).
-                network_failure = type(error).__name__
-                self._circuit_breaker.on_failure()
-                recorded = True
-            else:
-                transient = is_transient_response(response, self._options)
-                if transient:
-                    self._circuit_breaker.on_failure()
-                else:
-                    self._circuit_breaker.on_success()
-                recorded = True
-            finally:
-                if not recorded:
-                    self._circuit_breaker.release()
-
+            response, network_failure = self._attempt_once(attempt)
             remaining = deadline - time.monotonic()
+            can_retry = retry_safe and attempt_number < max_attempts and remaining > 0
 
             if network_failure is not None:
-                if retry_safe and attempt_number < max_attempts and remaining > 0:
-                    time.sleep(min(self._backoff_seconds(attempt_number), remaining))
-                    continue
-
-                # Levantada fora do `except`: sem __context__/__cause__ com o erro (e a requisição) do httpx.
-                raise CredicarroTimeoutError(
-                    f"Falha de rede ou timeout ao chamar a API do Credicarro ({network_failure})."
-                )
+                if not can_retry:
+                    # Levantada fora do `except`: sem __context__/__cause__ com o erro (e a requisição) do httpx.
+                    raise CredicarroTimeoutError(
+                        f"Falha de rede ou timeout ao chamar a API do Credicarro ({network_failure})."
+                    )
+                time.sleep(min(self._backoff_seconds(attempt_number), remaining))
+                continue
 
             assert response is not None
-            if not is_transient_response(response, self._options) or not retry_safe:
+            delay = self._retry_delay(response, attempt_number, remaining) if can_retry else None
+            if delay is None:
                 return response
-
-            if attempt_number >= max_attempts or remaining <= 0:
-                return response
-
-            retry_after = retry_after_seconds(response.headers)
-            if retry_after is not None and retry_after > remaining:
-                # Esperar passaria do orçamento: devolve já a resposta (429 vira RateLimit com retry_after_ms).
-                return response
-
-            delay = retry_after if retry_after is not None else self._backoff_seconds(attempt_number)
             time.sleep(min(delay, remaining))
 
         raise AssertionError("unreachable: resilience pipeline loop did not return or raise")
+
+    def _attempt_once(self, attempt: Callable[[], ApiResponse]) -> tuple[Optional[ApiResponse], Optional[str]]:
+        """Roda uma tentativa e registra o resultado no circuit breaker. Devolve a resposta ou a falha de rede."""
+        try:
+            response = attempt()
+        except NETWORK_ERRORS as error:
+            # Só o nome do tipo sobrevive: o objeto httpx referencia a requisição (Authorization e corpo).
+            self._circuit_breaker.on_failure()
+            return None, type(error).__name__
+        except BaseException:
+            # Exceção que não é de rede: encerra o teste de meia-abertura sem veredito e propaga.
+            self._circuit_breaker.release()
+            raise
+
+        if is_transient_response(response, self._options):
+            self._circuit_breaker.on_failure()
+        else:
+            self._circuit_breaker.on_success()
+        return response, None
+
+    def _retry_delay(self, response: ApiResponse, attempt_number: int, remaining: float) -> Optional[float]:
+        """Segundos até a próxima tentativa, ou `None` quando a resposta deve ser devolvida já."""
+        if not is_transient_response(response, self._options):
+            return None
+
+        retry_after = retry_after_seconds(response.headers)
+        if retry_after is not None and retry_after > remaining:
+            # Esperar passaria do orçamento: devolve já a resposta (429 vira RateLimit com retry_after_ms).
+            return None
+
+        return retry_after if retry_after is not None else self._backoff_seconds(attempt_number)
 
     def _backoff_seconds(self, attempt_number: int) -> float:
         base_delay_ms = self._options.retry_base_delay_ms

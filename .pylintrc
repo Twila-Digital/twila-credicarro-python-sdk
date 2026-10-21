@@ -11,7 +11,9 @@ disable=
     bad-continuation,
     unsubscriptable-object,
     no-name-in-module,
-    too-few-public-methods
+    too-few-public-methods,
+    # os modelos (dataclasses) espelham os payloads da API, campo a campo
+    too-many-instance-attributes
 
 [FORMAT]
 max-line-length=120
@@ -23,3 +25,7 @@ const-rgx=(([A-Z_][A-Z0-9_]*)|([A-Z][a-zA-Z0-9]+)|(__.*__))$
 
 [DESIGN]
 max-args=7
+
+[SIMILARITIES]
+# As listas de reexportação (__all__) e os campos dos requests v1/v2 se repetem por desenho da API.
+min-similarity-lines=12

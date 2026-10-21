@@ -18,3 +18,8 @@ class QueryStringBuilder:
             return path
 
         return f"{path}?{'&'.join(self._parameters)}"
+
+
+def paged_path(path: str, page: int, page_size: int) -> str:
+    """Rota de listagem com a paginação da API (`pagina_inicial` e `limite`)."""
+    return QueryStringBuilder().add("pagina_inicial", page).add("limite", page_size).build(path)

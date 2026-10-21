@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .._internal.http.api_request_executor import ApiRequestExecutor
-from .._internal.http.query_string import QueryStringBuilder
+from .._internal.http.query_string import paged_path
 from .._internal.mapping.paged_mapper import paged_result_from_wire
 from .._internal.mapping.proposal_mapper import (
     create_proposal_request_to_wire,
@@ -89,12 +89,7 @@ class ProposalsClient:
         """Lista as propostas do parceiro, paginadas (`GET v1/proposal`)."""
         request = request or ListRequest()
 
-        path = (
-            QueryStringBuilder()
-            .add("pagina_inicial", request.page)
-            .add("limite", request.page_size)
-            .build("v1/proposal")
-        )
+        path = paged_path("v1/proposal", request.page, request.page_size)
         response = self._executor.get(path)
         ApiRequestExecutor.ensure_success(response)
 

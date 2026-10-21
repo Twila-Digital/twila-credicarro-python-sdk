@@ -573,16 +573,17 @@ class ProposalSummary:
 class _HasParticipants(Protocol):
     """`ProposalDetails` ou o evento detalhado do webhook (`ProposalWebhookEvent`)."""
 
-    # pylint: disable=multiple-statements,pointless-statement  # corpos `...` de Protocol
+    @property
+    def buyer(self) -> Optional[ProposalParticipantState]:
+        """Comprador."""
 
     @property
-    def buyer(self) -> Optional[ProposalParticipantState]: ...
+    def seller(self) -> Optional[ProposalParticipantState]:
+        """Vendedor."""
 
     @property
-    def seller(self) -> Optional[ProposalParticipantState]: ...
-
-    @property
-    def store(self) -> Optional[ProposalParticipantState]: ...
+    def store(self) -> Optional[ProposalParticipantState]:
+        """Loja."""
 
 
 def get_pending_actions(proposal: _HasParticipants) -> list[PendingAction]:
@@ -608,32 +609,22 @@ def _pending_action(
         return None
 
     active = state.active_step
-    if active.action_owner is not ActionOwner.INTEGRATOR:
+    action = _INTEGRATOR_ACTIONS.get(active.step)
+    if active.action_owner is not ActionOwner.INTEGRATOR or action is None:
         return None
 
-    if active.step is ProposalStep.DOCUMENT_SUBMISSION:
-        return PendingAction(
-            participant,
-            active.step,
-            PendingActionKind.SEND_DOCUMENTS,
-            _document_types(state, DocumentStatus.PENDING),
-        )
+    kind, document_status = action
+    document_types = _document_types(state, document_status) if document_status is not None else ()
+    return PendingAction(participant, active.step, kind, document_types)
 
-    if active.step is ProposalStep.DOCUMENT_CORRECTION:
-        return PendingAction(
-            participant,
-            active.step,
-            PendingActionKind.CORRECT_DOCUMENTS,
-            _document_types(state, DocumentStatus.INVALID),
-        )
 
-    if active.step is ProposalStep.VEHICLE_DETAILS:
-        return PendingAction(participant, active.step, PendingActionKind.SEND_VEHICLE_DETAILS)
-
-    if active.step is ProposalStep.DEPOSIT_ACCOUNT:
-        return PendingAction(participant, active.step, PendingActionKind.SEND_DEPOSIT_ACCOUNT)
-
-    return None
+# Etapas em que o integrador age: o que fazer e, nas de documento, o status que lista os tipos a enviar.
+_INTEGRATOR_ACTIONS: dict[ProposalStep, tuple[PendingActionKind, Optional[DocumentStatus]]] = {
+    ProposalStep.DOCUMENT_SUBMISSION: (PendingActionKind.SEND_DOCUMENTS, DocumentStatus.PENDING),
+    ProposalStep.DOCUMENT_CORRECTION: (PendingActionKind.CORRECT_DOCUMENTS, DocumentStatus.INVALID),
+    ProposalStep.VEHICLE_DETAILS: (PendingActionKind.SEND_VEHICLE_DETAILS, None),
+    ProposalStep.DEPOSIT_ACCOUNT: (PendingActionKind.SEND_DEPOSIT_ACCOUNT, None),
+}
 
 
 def _document_types(state: ProposalParticipantState, status: DocumentStatus) -> tuple[DocumentType, ...]:

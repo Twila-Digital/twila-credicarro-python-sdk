@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .._internal.http.api_request_executor import ApiRequestExecutor
-from .._internal.http.query_string import QueryStringBuilder
+from .._internal.http.query_string import paged_path
 from .._internal.mapping.paged_mapper import paged_result_from_wire
 from .._internal.mapping.webhook_mapper import (
     create_webhook_request_to_wire,
@@ -43,12 +43,7 @@ class WebhooksClient:
         """Lista os webhooks do parceiro, paginados (`GET v1/webhook`)."""
         request = request or ListRequest()
 
-        path = (
-            QueryStringBuilder()
-            .add("pagina_inicial", request.page)
-            .add("limite", request.page_size)
-            .build("v1/webhook")
-        )
+        path = paged_path("v1/webhook", request.page, request.page_size)
         response = self._executor.get(path)
         ApiRequestExecutor.ensure_success(response)
 
