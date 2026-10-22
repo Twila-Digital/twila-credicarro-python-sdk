@@ -1,0 +1,8 @@
+exclude_paths:
+  - "dist/**"
+  - "build/**"
+  - ".venv/**"
+  - "coverage.xml"
+  - "contract_tests/**"
+  - "samples/**"
+  - "tests/**"

@@ -1,0 +1,24 @@
+name: Contract tests
+
+on:
+  schedule:
+    - cron: '31 6 * * *'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - run: pip install -e ".[dev]"
+
+      - run: pytest contract_tests
