@@ -94,6 +94,7 @@ opcoes = client.simulations.create_financing(
         state="SP",
         is_zero_km=False,
         store_cnpj="11.222.333/0001-81",
+        # commission_return=2,  # opcional, dentro da faixa configurada na loja (ver get_commission_returns)
     )
 )
 
@@ -144,7 +145,7 @@ client.proposals.upload_document(
 | Cliente | Métodos |
 | --- | --- |
 | `client.customers` | `upsert`, `create`, `upsert_address`, `upsert_professional_data` |
-| `client.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing`, `get`, `list` |
+| `client.simulations` | `get_financing_range`, `get_refinancing_range`, `get_commission_returns`, `create_financing`, `create_refinancing`, `get`, `list` |
 | `client.proposals` | `create`, `get`, `list`, `send_vehicle_details`, `send_deposit_account`, `upload_document` |
 | `client.webhooks` | `create`, `list`, `update`, `delete` |
 | `client.v1.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing` (sem `cnpjLoja`) |

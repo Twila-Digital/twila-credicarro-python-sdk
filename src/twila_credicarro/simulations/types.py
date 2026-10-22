@@ -27,6 +27,36 @@ class SimulationType(IntEnum):
 _SIMULATION_TYPE_NAMES = build_name_table(SimulationType)
 
 
+class CommissionReturnType(IntEnum):
+    """`tipo` do retorno de comissão (por nome: `Financing`, `Refinancing`)."""
+
+    FINANCING = 1
+    REFINANCING = 2
+    UNKNOWN = -1
+
+    @classmethod
+    def from_wire_name(cls, value: object) -> "CommissionReturnType":
+        return enum_from_name(_COMMISSION_RETURN_TYPE_NAMES, value, cls.UNKNOWN)
+
+
+_COMMISSION_RETURN_TYPE_NAMES = build_name_table(CommissionReturnType)
+
+
+class CommissionReturnTarget(IntEnum):
+    """`alvo` do retorno de comissão: a quem pertence a configuração (`Store` ou `Organization`)."""
+
+    STORE = 1
+    ORGANIZATION = 2
+    UNKNOWN = -1
+
+    @classmethod
+    def from_wire_name(cls, value: object) -> "CommissionReturnTarget":
+        return enum_from_name(_COMMISSION_RETURN_TARGET_NAMES, value, cls.UNKNOWN)
+
+
+_COMMISSION_RETURN_TARGET_NAMES = build_name_table(CommissionReturnTarget)
+
+
 @dataclass(frozen=True)
 class FinancingRangeOption:
     """Entrada mínima para um prazo (`opcoes_por_prazo`)."""
@@ -44,6 +74,18 @@ class RefinancingRangeOption:
     maximum_amount: float
 
 
+@dataclass(frozen=True)
+class CommissionReturn:
+    """Faixa de retorno de comissão configurada para a loja, por tipo de simulação
+    (`GET v2/proposal/simulation/commission-returns`)."""
+
+    type: CommissionReturnType
+    target: CommissionReturnTarget
+    minimum_return: int
+    maximum_return: int
+    allow_default_rate: bool  # loja aceita simular sem informar `commission_return` (`permite_taxa_padrao`)
+
+
 @masked_repr(cpf=("cpf",), secret=("license_plate",))
 @dataclass(frozen=True)
 class CreateFinancingSimulationRequest:
@@ -56,6 +98,9 @@ class CreateFinancingSimulationRequest:
     state: str
     is_zero_km: bool
     store_cnpj: str
+    # Retorno de comissão a aplicar, dentro da faixa configurada na loja (`retornoComissao`). Opcional: `None`
+    # usa a taxa padrão, quando a loja permitir. Consulte a faixa aceita com `SimulationsClient.get_commission_returns`.
+    commission_return: Optional[int] = None
 
 
 @masked_repr(cpf=("cpf",), secret=("license_plate",))
@@ -67,6 +112,9 @@ class CreateRefinancingSimulationRequest:
     license_plate: str
     requested_amount: float
     store_cnpj: str
+    # Retorno de comissão a aplicar, dentro da faixa configurada na loja (`retornoComissao`). Opcional: `None`
+    # usa a taxa padrão, quando a loja permitir. Consulte a faixa aceita com `SimulationsClient.get_commission_returns`.
+    commission_return: Optional[int] = None
 
 
 @dataclass(frozen=True)
