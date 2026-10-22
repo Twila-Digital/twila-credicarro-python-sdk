@@ -56,6 +56,9 @@ from .proposals.types import (
 )
 from .simulations.client import SimulationsClient
 from .simulations.types import (
+    CommissionReturn,
+    CommissionReturnTarget,
+    CommissionReturnType,
     CreateFinancingSimulationRequest,
     CreateRefinancingSimulationRequest,
     FinancingRangeOption,
@@ -117,6 +120,9 @@ __all__ = [
     "ProfessionalData",
     "UpsertCustomerRequest",
     "SimulationsClient",
+    "CommissionReturn",
+    "CommissionReturnTarget",
+    "CommissionReturnType",
     "CreateFinancingSimulationRequest",
     "CreateRefinancingSimulationRequest",
     "FinancingRangeOption",

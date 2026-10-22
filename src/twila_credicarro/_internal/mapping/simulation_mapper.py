@@ -1,6 +1,9 @@
 from typing import Any, Optional
 
 from ...simulations.types import (
+    CommissionReturn,
+    CommissionReturnTarget,
+    CommissionReturnType,
     CreateFinancingSimulationRequest,
     CreateRefinancingSimulationRequest,
     FinancingRangeOption,
@@ -30,24 +33,30 @@ from .wire import (
 
 
 def financing_request_to_wire(request: CreateFinancingSimulationRequest) -> dict[str, Any]:
-    return {
+    wire: dict[str, Any] = {
         "cpf": request.cpf,
         "placa": request.license_plate,
         "valorVeiculo": request.vehicle_amount,
         "valorEntrada": request.down_payment,
         "uf": request.state,
         "isVeiculoZeroKm": request.is_zero_km,
-        "cnpjLoja": request.store_cnpj,
     }
+    if request.commission_return is not None:
+        wire["retornoComissao"] = request.commission_return
+    wire["cnpjLoja"] = request.store_cnpj
+    return wire
 
 
 def refinancing_request_to_wire(request: CreateRefinancingSimulationRequest) -> dict[str, Any]:
-    return {
+    wire: dict[str, Any] = {
         "cpf": request.cpf,
         "placa": request.license_plate,
         "valorSolicitado": request.requested_amount,
-        "cnpjLoja": request.store_cnpj,
     }
+    if request.commission_return is not None:
+        wire["retornoComissao"] = request.commission_return
+    wire["cnpjLoja"] = request.store_cnpj
+    return wire
 
 
 def financing_v1_request_to_wire(request: CreateFinancingSimulationV1Request) -> dict[str, Any]:
@@ -89,6 +98,20 @@ def refinancing_range_to_public(wire: Any) -> list[RefinancingRangeOption]:
             maximum_amount=req_float(item, "valor_maximo_refinanciavel"),
         )
         for item in _items(root, "opcoes_por_prazo")
+    ]
+
+
+def commission_returns_to_public(wire: Any) -> list[CommissionReturn]:
+    root = as_dict(wire, "os retornos de comissão")
+    return [
+        CommissionReturn(
+            type=CommissionReturnType.from_wire_name(opt_str(item, "tipo")),
+            target=CommissionReturnTarget.from_wire_name(opt_str(item, "alvo")),
+            minimum_return=req_int(item, "retorno_minimo"),
+            maximum_return=req_int(item, "retorno_maximo"),
+            allow_default_rate=bool(opt_bool(item, "permite_taxa_padrao")),
+        )
+        for item in _items(root, "retornos_comissao")
     ]
 
 

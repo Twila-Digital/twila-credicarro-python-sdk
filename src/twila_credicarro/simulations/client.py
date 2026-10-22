@@ -4,6 +4,7 @@ from .._internal.http.api_request_executor import ApiRequestExecutor
 from .._internal.http.query_string import QueryStringBuilder, paged_path
 from .._internal.mapping.paged_mapper import paged_result_from_wire
 from .._internal.mapping.simulation_mapper import (
+    commission_returns_to_public,
     financing_range_to_public,
     financing_request_to_wire,
     refinancing_range_to_public,
@@ -15,6 +16,7 @@ from .._internal.mapping.wire import as_dict
 from .._internal.path import Identifier, path_segment
 from ..paged_result import ListRequest, PagedResult
 from .types import (
+    CommissionReturn,
     CreateFinancingSimulationRequest,
     CreateRefinancingSimulationRequest,
     FinancingRangeOption,
@@ -55,6 +57,16 @@ class SimulationsClient:
         ApiRequestExecutor.ensure_success(response)
 
         return refinancing_range_to_public(response.body)
+
+    def get_commission_returns(self, store_cnpj: str) -> list[CommissionReturn]:
+        """Retornos de comissão configurados para a loja, por tipo de simulação
+        (`GET v2/proposal/simulation/commission-returns`). Use um dos valores devolvidos em
+        `commission_return` ao criar a simulação."""
+        path = QueryStringBuilder().add("cnpjLoja", store_cnpj).build("v2/proposal/simulation/commission-returns")
+        response = self._executor.get(path)
+        ApiRequestExecutor.ensure_success(response)
+
+        return commission_returns_to_public(response.body)
 
     def create_financing(self, request: CreateFinancingSimulationRequest) -> list[SimulationOption]:
         """Simula um financiamento (`POST v2/proposal/simulation/financing`), com `Idempotency-Key` automática."""
