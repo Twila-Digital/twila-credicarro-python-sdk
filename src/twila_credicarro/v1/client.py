@@ -8,15 +8,26 @@ from .._internal.mapping.proposal_mapper import (
 from .._internal.mapping.simulation_mapper import (
     financing_range_to_public,
     financing_v1_request_to_wire,
+    financing_without_cpf_options_to_public,
+    financing_without_cpf_request_to_wire,
     refinancing_range_to_public,
     refinancing_v1_request_to_wire,
+    refinancing_without_cpf_options_to_public,
+    refinancing_without_cpf_request_to_wire,
     simulation_options_to_public,
 )
 from .._internal.mapping.wire import as_dict
 from .._internal.path import Identifier, path_segment
 from ..proposals.types import CreateProposalRequest, ProposalSummary
 from ..simulations.types import FinancingRangeOption, RefinancingRangeOption, SimulationOption
-from .types import CreateFinancingSimulationV1Request, CreateRefinancingSimulationV1Request
+from .types import (
+    CreateFinancingSimulationV1Request,
+    CreateFinancingWithoutCpfRequest,
+    CreateRefinancingSimulationV1Request,
+    CreateRefinancingWithoutCpfRequest,
+    FinancingWithoutCpfOption,
+    RefinancingWithoutCpfOption,
+)
 
 
 class V1SimulationsClient:
@@ -45,11 +56,39 @@ class V1SimulationsClient:
 
         return simulation_options_to_public(response.body)
 
+    def create_financing_without_cpf(
+        self, request: CreateFinancingWithoutCpfRequest
+    ) -> list[FinancingWithoutCpfOption]:
+        """Simula o financiamento sem CPF (`POST v1/proposal/simulation/financing/without-cpf`).
+
+        Nada é gravado e a chamada não usa `Idempotency-Key`: é segura para repetir.
+        """
+        response = self._executor.post(
+            "v1/proposal/simulation/financing/without-cpf", financing_without_cpf_request_to_wire(request)
+        )
+        ApiRequestExecutor.ensure_success(response)
+
+        return financing_without_cpf_options_to_public(response.body)
+
     def create_refinancing(self, request: CreateRefinancingSimulationV1Request) -> list[SimulationOption]:
         response = self._executor.post("v1/proposal/simulation/refinancing", refinancing_v1_request_to_wire(request))
         ApiRequestExecutor.ensure_success(response)
 
         return simulation_options_to_public(response.body)
+
+    def create_refinancing_without_cpf(
+        self, request: CreateRefinancingWithoutCpfRequest
+    ) -> list[RefinancingWithoutCpfOption]:
+        """Simula o refinanciamento sem CPF (`POST v1/proposal/simulation/refinancing/without-cpf`).
+
+        Nada é gravado e a chamada não usa `Idempotency-Key`: é segura para repetir.
+        """
+        response = self._executor.post(
+            "v1/proposal/simulation/refinancing/without-cpf", refinancing_without_cpf_request_to_wire(request)
+        )
+        ApiRequestExecutor.ensure_success(response)
+
+        return refinancing_without_cpf_options_to_public(response.body)
 
 
 class V1ProposalsClient:

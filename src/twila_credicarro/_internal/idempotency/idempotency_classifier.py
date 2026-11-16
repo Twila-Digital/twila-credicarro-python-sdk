@@ -15,6 +15,13 @@ _MANDATORY_KEY_PATTERN = re.compile(r"^v2/proposal/[^/]+/document$")
 
 _REPLACEMENT_POST_PATTERN = re.compile(r"^v2/proposal/[^/]+/(?:vehicle-detail|deposit-account)$")
 
+_WITHOUT_CPF_SIMULATION_PATHS = frozenset(
+    {
+        "v1/proposal/simulation/financing/without-cpf",
+        "v1/proposal/simulation/refinancing/without-cpf",
+    }
+)
+
 _WEBHOOK_ITEM_PATTERN = re.compile(r"^v1/webhook/[^/]+$")
 
 
@@ -53,6 +60,9 @@ def is_retry_safe(method: str, path: str, has_idempotency_key: bool) -> bool:
         return True
 
     if _REPLACEMENT_POST_PATTERN.match(normalized):
+        return True
+
+    if normalized in _WITHOUT_CPF_SIMULATION_PATHS:
         return True
 
     return has_idempotency_key
