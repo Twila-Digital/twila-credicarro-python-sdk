@@ -160,7 +160,7 @@ client.proposals.upload_document(
 | `client.customers` | `upsert`, `create`, `upsert_address`, `upsert_professional_data` |
 | `client.simulations` | `get_financing_range`, `get_refinancing_range`, `get_commission_returns`, `create_financing`, `create_refinancing`, `get`, `list` |
 | `client.proposals` | `create`, `get`, `list`, `send_vehicle_details`, `send_deposit_account`, `upload_document` |
-| `client.webhooks` | `create`, `list`, `update`, `delete`, `list_deliveries`, `get_delivery_chart`, `resend` |
+| `client.webhooks` | `create`, `list`, `update`, `delete`, `list_deliveries`, `resend` |
 | `client.v1.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing` (sem `cnpjLoja`) |
 | `client.v1.proposals` | `create`, `get` (retorna `ProposalSummary`) |
 
@@ -264,20 +264,17 @@ resultado = client.webhooks.create(
 guarde_com_seguranca(resultado.signing_secret)  # só vem nesta resposta
 ```
 
-### Histórico, gráfico e reenvio
+### Histórico e reenvio
 
 ```python
 from datetime import date
 
-from twila_credicarro import ListWebhookDeliveriesRequest, WebhookDeliveryChartRequest
+from twila_credicarro import ListWebhookDeliveriesRequest
 
 # Envios que falharam na semana (todos os filtros são opcionais; `date` vale pelo dia inteiro)
 falhas = client.webhooks.list_deliveries(
     ListWebhookDeliveriesRequest(initial_date=date(2026, 11, 1), final_date=date(2026, 11, 7), status_code=500)
 )
-
-# Sucessos e erros por intervalo (período obrigatório, até 31 dias; rótulos no horário de Brasília)
-grafico = client.webhooks.get_delivery_chart(WebhookDeliveryChartRequest(date(2026, 11, 1), date(2026, 11, 7)))
 
 # Reenvia o mesmo corpo para a sua URL depois de corrigir a falha
 resultado = client.webhooks.resend(falhas.items[0].id)

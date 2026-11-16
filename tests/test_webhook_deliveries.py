@@ -7,10 +7,7 @@ import respx
 from conftest import make_client
 from twila_credicarro import (
     CredicarroApiError,
-    CredicarroValidationError,
     ListWebhookDeliveriesRequest,
-    WebhookDeliveryChartPoint,
-    WebhookDeliveryChartRequest,
     WebhookResendResult,
     WebhookType,
 )
@@ -106,51 +103,6 @@ def test_list_deliveries_without_filters_sends_default_paging(
 def test_list_deliveries_validates_paging() -> None:
     with pytest.raises(ValueError):
         ListWebhookDeliveriesRequest(page_size=101)
-
-
-def test_get_delivery_chart_sends_period_and_maps_points(
-    mock_router: respx.MockRouter, token_route: respx.Route
-) -> None:
-    route = mock_router.get("v1/webhook/audit/chart").mock(
-        return_value=httpx.Response(
-            200, json=[{"rotulo": "04", "sucessos": 42, "erros": 0}, {"rotulo": "05", "sucessos": 38, "erros": 3}]
-        )
-    )
-    client = make_client()
-
-    points = client.webhooks.get_delivery_chart(
-        WebhookDeliveryChartRequest("2026-11-04", "2026-11-05", status_code=200)
-    )
-    client.close()
-
-    assert dict(route.calls.last.request.url.params) == {
-        "data_inicial": "2026-11-04",
-        "data_final": "2026-11-05",
-        "status_http": "200",
-    }
-    assert points == [WebhookDeliveryChartPoint("04", 42, 0), WebhookDeliveryChartPoint("05", 38, 3)]
-
-
-def test_get_delivery_chart_surfaces_date_range_too_large(
-    mock_router: respx.MockRouter, token_route: respx.Route
-) -> None:
-    mock_router.get("v1/webhook/audit/chart").mock(
-        return_value=httpx.Response(
-            400,
-            json={
-                "tipo": "Organization.Webhook.Audit.DateRangeTooLarge",
-                "titulo": "Requisição inválida",
-                "status": 400,
-            },
-        )
-    )
-    client = make_client()
-
-    with pytest.raises(CredicarroValidationError) as error:
-        client.webhooks.get_delivery_chart(WebhookDeliveryChartRequest("2026-01-01", "2026-03-01"))
-    client.close()
-
-    assert error.value.error_code == "Organization.Webhook.Audit.DateRangeTooLarge"
 
 
 def test_resend_posts_without_body_or_idempotency_key(mock_router: respx.MockRouter, token_route: respx.Route) -> None:

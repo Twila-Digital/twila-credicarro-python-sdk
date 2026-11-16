@@ -8,7 +8,6 @@ from .._internal.mapping.webhook_mapper import (
     create_webhook_request_to_wire,
     create_webhook_result_to_public,
     update_webhook_request_to_wire,
-    webhook_delivery_chart_to_public,
     webhook_delivery_to_public,
     webhook_resend_result_to_public,
     webhook_to_public,
@@ -22,8 +21,6 @@ from .types import (
     UpdateWebhookRequest,
     Webhook,
     WebhookDelivery,
-    WebhookDeliveryChartPoint,
-    WebhookDeliveryChartRequest,
     WebhookResendResult,
 )
 
@@ -56,9 +53,7 @@ class WebhooksClient:
         response = self._executor.delete(f"v1/webhook/{path_segment(webhook_id)}")
         ApiRequestExecutor.ensure_success(response)
 
-    def list_deliveries(
-        self, request: Optional[ListWebhookDeliveriesRequest] = None
-    ) -> PagedResult[WebhookDelivery]:
+    def list_deliveries(self, request: Optional[ListWebhookDeliveriesRequest] = None) -> PagedResult[WebhookDelivery]:
         """Histórico de envios, com o corpo enviado, a resposta da sua URL e o status HTTP (`GET v1/webhook/audit`)."""
         request = request or ListWebhookDeliveriesRequest()
 
@@ -72,20 +67,6 @@ class WebhooksClient:
         ApiRequestExecutor.ensure_success(response)
 
         return paged_result_from_wire(response.body, webhook_delivery_to_public)
-
-    def get_delivery_chart(self, request: WebhookDeliveryChartRequest) -> list[WebhookDeliveryChartPoint]:
-        """Sucessos e erros por intervalo, no horário de Brasília (`GET v1/webhook/audit/chart`).
-
-        O período é obrigatório e pode ter até 31 dias.
-        """
-        if request.initial_date is None or request.final_date is None:
-            raise ValueError("initial_date e final_date são obrigatórios no gráfico de envios.")
-
-        path = add_webhook_delivery_filter(QueryStringBuilder(), request).build("v1/webhook/audit/chart")
-        response = self._executor.get(path)
-        ApiRequestExecutor.ensure_success(response)
-
-        return webhook_delivery_chart_to_public(response.body)
 
     def resend(self, delivery_id: Identifier) -> WebhookResendResult:
         """Reenvia um envio do histórico (`POST v1/webhook/audit/{id}/resend`).

@@ -70,7 +70,6 @@ SDK_OPERATIONS = {
     ("put", "/v1/webhook/{webhookId}"),
     ("delete", "/v1/webhook/{webhookId}"),
     ("get", "/v1/webhook/audit"),
-    ("get", "/v1/webhook/audit/chart"),
     ("post", "/v1/webhook/audit/{auditWebhookId}/resend"),
     ("get", "/v2/proposal/simulation/commission-returns"),
     ("get", "/v2/proposal/simulation/range/financing"),
@@ -102,14 +101,6 @@ QUERY_PARAMETERS = {
         "status_http",
         "pagina_inicial",
         "limite",
-    },
-    ("get", "/v1/webhook/audit/chart"): {
-        "data_inicial",
-        "data_final",
-        "id_proposta",
-        "id_simulacao",
-        "numero_proposta",
-        "status_http",
     },
 }
 
@@ -394,7 +385,6 @@ RESPONSES: list[tuple[str, str, str, Callable[[Any], Any], frozenset[str]]] = [
         lambda w: paged_result_from_wire(w, webhook_mapper.webhook_delivery_to_public),
         frozenset(),
     ),
-    ("get", "/v1/webhook/audit/chart", "200", webhook_mapper.webhook_delivery_chart_to_public, frozenset()),
     (
         "post",
         "/v1/webhook/audit/{auditWebhookId}/resend",

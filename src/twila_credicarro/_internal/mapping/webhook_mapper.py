@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from ...webhooks.types import (
     CreateWebhookRequest,
@@ -10,15 +10,13 @@ from ...webhooks.types import (
     Webhook,
     WebhookAuthenticationType,
     WebhookDelivery,
-    WebhookDeliveryChartPoint,
-    WebhookDeliveryChartRequest,
     WebhookResendResult,
     WebhookStatus,
     WebhookType,
 )
 from ..datetime_parsing import parse_iso_datetime
 from ..http.query_string import QueryStringBuilder
-from .wire import as_dict, as_list, opt_int, opt_str, req_int, req_str
+from .wire import as_dict, opt_int, opt_str, req_str
 
 
 def webhook_to_public(wire: dict[str, Any]) -> Webhook:
@@ -59,9 +57,7 @@ def date_filter_to_wire(value: Optional[DateFilter]) -> Optional[str]:
     return value.isoformat()
 
 
-def add_webhook_delivery_filter(
-    query: QueryStringBuilder, request: Union[ListWebhookDeliveriesRequest, WebhookDeliveryChartRequest]
-) -> QueryStringBuilder:
+def add_webhook_delivery_filter(query: QueryStringBuilder, request: ListWebhookDeliveriesRequest) -> QueryStringBuilder:
     return (
         query.add("data_inicial", date_filter_to_wire(request.initial_date))
         .add("data_final", date_filter_to_wire(request.final_date))
@@ -82,17 +78,6 @@ def webhook_delivery_to_public(wire: dict[str, Any]) -> WebhookDelivery:
         status_code=opt_int(wire, "status_http"),
         created_at=parse_iso_datetime(wire.get("data_criacao")),
     )
-
-
-def webhook_delivery_chart_to_public(wire: Any) -> list[WebhookDeliveryChartPoint]:
-    return [
-        WebhookDeliveryChartPoint(
-            label=req_str(item, "rotulo"),
-            success_count=req_int(item, "sucessos"),
-            error_count=req_int(item, "erros"),
-        )
-        for item in (as_dict(entry, "um ponto do gráfico de envios") for entry in as_list(wire, "o gráfico de envios"))
-    ]
 
 
 def webhook_resend_result_to_public(wire: Any) -> WebhookResendResult:

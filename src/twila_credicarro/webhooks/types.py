@@ -129,18 +129,6 @@ class ListWebhookDeliveriesRequest:
         ListRequest(self.page, self.page_size)
 
 
-@dataclass(frozen=True)
-class WebhookDeliveryChartRequest:
-    """Filtros do gráfico de envios (`GET v1/webhook/audit/chart`). O período é obrigatório e pode ter até 31 dias."""
-
-    initial_date: DateFilter
-    final_date: DateFilter
-    proposal_id: Optional[str] = None
-    simulation_id: Optional[str] = None
-    proposal_number: Optional[str] = None
-    status_code: Optional[int] = None
-
-
 @masked_repr(secret=("request", "response"))
 @dataclass(frozen=True)
 class WebhookDelivery:
@@ -154,15 +142,6 @@ class WebhookDelivery:
     webhook_id: Optional[str] = None
     status_code: Optional[int] = None
     """Status HTTP devolvido pela sua URL; `None` quando ela não respondeu (ex.: timeout)."""
-
-
-@dataclass(frozen=True)
-class WebhookDeliveryChartPoint:
-    """Contagem de envios em um intervalo do gráfico. `label`: `"10m"`, `"14h"` ou `"05"` (horário de Brasília)."""
-
-    label: str
-    success_count: int
-    error_count: int
 
 
 @masked_repr(secret=("response",))
