@@ -47,7 +47,11 @@ class RefinancingRangeOption:
 @masked_repr(cpf=("cpf",), secret=("license_plate",))
 @dataclass(frozen=True)
 class CreateFinancingSimulationRequest:
-    """`POST v2/proposal/simulation/financing`. O cliente precisa estar cadastrado antes."""
+    """`POST v2/proposal/simulation/financing`. O cliente precisa estar cadastrado antes.
+
+    `commission_return` (`retornoComissao`) é opcional; quando enviado, precisa estar na faixa `Financing` da loja
+    (veja `get_commission_returns`).
+    """
 
     cpf: str
     license_plate: str
@@ -56,17 +60,49 @@ class CreateFinancingSimulationRequest:
     state: str
     is_zero_km: bool
     store_cnpj: str
+    commission_return: Optional[int] = None
 
 
 @masked_repr(cpf=("cpf",), secret=("license_plate",))
 @dataclass(frozen=True)
 class CreateRefinancingSimulationRequest:
-    """`POST v2/proposal/simulation/refinancing`. O valor precisa estar na faixa refinanciável da placa."""
+    """`POST v2/proposal/simulation/refinancing`. O valor precisa estar na faixa refinanciável da placa.
+
+    `commission_return` (`retornoComissao`) é opcional; quando enviado, precisa estar na faixa `Refinancing` da loja
+    (veja `get_commission_returns`).
+    """
 
     cpf: str
     license_plate: str
     requested_amount: float
     store_cnpj: str
+    commission_return: Optional[int] = None
+
+
+class CommissionReturnTarget(IntEnum):
+    """A quem a faixa de retorno de comissão se aplica (`alvo`: `Store` ou `Organization`)."""
+
+    STORE = 1
+    ORGANIZATION = 2
+    UNKNOWN = -1
+
+    @classmethod
+    def from_wire_name(cls, value: object) -> "CommissionReturnTarget":
+        return enum_from_name(_COMMISSION_RETURN_TARGET_NAMES, value, cls.UNKNOWN)
+
+
+_COMMISSION_RETURN_TARGET_NAMES = build_name_table(CommissionReturnTarget)
+
+
+@dataclass(frozen=True)
+class CommissionReturn:
+    """Faixa de retorno de comissão da loja. A simulação valida pela faixa com `target` `STORE`."""
+
+    type: SimulationType
+    target: CommissionReturnTarget
+    minimum_return: int
+    maximum_return: int
+    allows_default_rate: bool
 
 
 @dataclass(frozen=True)

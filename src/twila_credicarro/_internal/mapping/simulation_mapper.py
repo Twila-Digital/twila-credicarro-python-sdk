@@ -1,6 +1,8 @@
 from typing import Any, Optional
 
 from ...simulations.types import (
+    CommissionReturn,
+    CommissionReturnTarget,
     CreateFinancingSimulationRequest,
     CreateRefinancingSimulationRequest,
     FinancingRangeOption,
@@ -30,7 +32,7 @@ from .wire import (
 
 
 def financing_request_to_wire(request: CreateFinancingSimulationRequest) -> dict[str, Any]:
-    return {
+    wire: dict[str, Any] = {
         "cpf": request.cpf,
         "placa": request.license_plate,
         "valorVeiculo": request.vehicle_amount,
@@ -39,15 +41,35 @@ def financing_request_to_wire(request: CreateFinancingSimulationRequest) -> dict
         "isVeiculoZeroKm": request.is_zero_km,
         "cnpjLoja": request.store_cnpj,
     }
+    if request.commission_return is not None:
+        wire["retornoComissao"] = request.commission_return
+    return wire
 
 
 def refinancing_request_to_wire(request: CreateRefinancingSimulationRequest) -> dict[str, Any]:
-    return {
+    wire: dict[str, Any] = {
         "cpf": request.cpf,
         "placa": request.license_plate,
         "valorSolicitado": request.requested_amount,
         "cnpjLoja": request.store_cnpj,
     }
+    if request.commission_return is not None:
+        wire["retornoComissao"] = request.commission_return
+    return wire
+
+
+def commission_returns_to_public(wire: Any) -> list[CommissionReturn]:
+    root = as_dict(wire, "os retornos de comissão")
+    return [
+        CommissionReturn(
+            type=SimulationType.from_wire_name(item.get("tipo")),
+            target=CommissionReturnTarget.from_wire_name(item.get("alvo")),
+            minimum_return=req_int(item, "retorno_minimo"),
+            maximum_return=req_int(item, "retorno_maximo"),
+            allows_default_rate=opt_bool(item, "permite_taxa_padrao") is True,
+        )
+        for item in _items(root, "retornos_comissao")
+    ]
 
 
 def financing_v1_request_to_wire(request: CreateFinancingSimulationV1Request) -> dict[str, Any]:

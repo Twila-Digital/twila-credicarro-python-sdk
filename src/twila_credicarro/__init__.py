@@ -56,6 +56,8 @@ from .proposals.types import (
 )
 from .simulations.client import SimulationsClient
 from .simulations.types import (
+    CommissionReturn,
+    CommissionReturnTarget,
     CreateFinancingSimulationRequest,
     CreateRefinancingSimulationRequest,
     FinancingRangeOption,
@@ -74,10 +76,15 @@ from .webhooks.client import WebhooksClient
 from .webhooks.types import (
     CreateWebhookRequest,
     CreateWebhookResult,
+    ListWebhookDeliveriesRequest,
     ProposalWebhookEvent,
     UpdateWebhookRequest,
     Webhook,
     WebhookAuthenticationType,
+    WebhookDelivery,
+    WebhookDeliveryChartPoint,
+    WebhookDeliveryChartRequest,
+    WebhookResendResult,
     WebhookStatus,
     WebhookType,
 )
@@ -117,6 +124,8 @@ __all__ = [
     "ProfessionalData",
     "UpsertCustomerRequest",
     "SimulationsClient",
+    "CommissionReturn",
+    "CommissionReturnTarget",
     "CreateFinancingSimulationRequest",
     "CreateRefinancingSimulationRequest",
     "FinancingRangeOption",
@@ -162,6 +171,11 @@ __all__ = [
     "WebhooksClient",
     "CreateWebhookRequest",
     "CreateWebhookResult",
+    "ListWebhookDeliveriesRequest",
+    "WebhookDelivery",
+    "WebhookDeliveryChartPoint",
+    "WebhookDeliveryChartRequest",
+    "WebhookResendResult",
     "ProposalWebhookEvent",
     "UpdateWebhookRequest",
     "Webhook",

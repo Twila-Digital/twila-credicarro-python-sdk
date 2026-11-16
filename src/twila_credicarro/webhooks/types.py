@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Union
 
 from .._internal.enum_support import build_name_table, enum_from_name, enum_from_value
 from .._internal.masking import masked_repr
+from ..paged_result import ListRequest
 from ..proposals.types import (
     PendingAction,
     ProposalEventReason,
@@ -103,6 +104,74 @@ class UpdateWebhookRequest:
     type: WebhookType
     url: str
     status: Optional[WebhookStatus] = None
+
+
+DateFilter = Union[str, date, datetime]
+
+
+@dataclass(frozen=True)
+class ListWebhookDeliveriesRequest:
+    """Filtros e paginação do histórico de envios (`GET v1/webhook/audit`). Todos os filtros são opcionais.
+
+    `date` (sem horário) vale pelo dia inteiro; `datetime` sem fuso é enviado em `-03:00`.
+    """
+
+    initial_date: Optional[DateFilter] = None
+    final_date: Optional[DateFilter] = None
+    proposal_id: Optional[str] = None
+    simulation_id: Optional[str] = None
+    proposal_number: Optional[str] = None
+    status_code: Optional[int] = None
+    page: int = 1
+    page_size: int = 10
+
+    def __post_init__(self) -> None:
+        ListRequest(self.page, self.page_size)
+
+
+@dataclass(frozen=True)
+class WebhookDeliveryChartRequest:
+    """Filtros do gráfico de envios (`GET v1/webhook/audit/chart`). O período é obrigatório e pode ter até 31 dias."""
+
+    initial_date: DateFilter
+    final_date: DateFilter
+    proposal_id: Optional[str] = None
+    simulation_id: Optional[str] = None
+    proposal_number: Optional[str] = None
+    status_code: Optional[int] = None
+
+
+@masked_repr(secret=("request", "response"))
+@dataclass(frozen=True)
+class WebhookDelivery:
+    """Envio registrado no histórico. Use `id` (`id_auditoria`) em `resend`."""
+
+    id: str
+    type: WebhookType
+    request: str
+    response: str
+    created_at: Optional[datetime]
+    webhook_id: Optional[str] = None
+    status_code: Optional[int] = None
+    """Status HTTP devolvido pela sua URL; `None` quando ela não respondeu (ex.: timeout)."""
+
+
+@dataclass(frozen=True)
+class WebhookDeliveryChartPoint:
+    """Contagem de envios em um intervalo do gráfico. `label`: `"10m"`, `"14h"` ou `"05"` (horário de Brasília)."""
+
+    label: str
+    success_count: int
+    error_count: int
+
+
+@masked_repr(secret=("response",))
+@dataclass(frozen=True)
+class WebhookResendResult:
+    """Resultado imediato do reenvio. `status_code` é `None` quando a sua URL não respondeu."""
+
+    response: str
+    status_code: Optional[int] = None
 
 
 @masked_repr(secret=("refusal_reason",))
