@@ -1,17 +1,31 @@
 from typing import Optional
 
 from .._internal.http.api_request_executor import ApiRequestExecutor
-from .._internal.http.query_string import paged_path
+from .._internal.http.query_string import QueryStringBuilder, paged_path
 from .._internal.mapping.paged_mapper import paged_result_from_wire
 from .._internal.mapping.webhook_mapper import (
+    add_webhook_delivery_filter,
     create_webhook_request_to_wire,
     create_webhook_result_to_public,
     update_webhook_request_to_wire,
+    webhook_delivery_to_public,
+    webhook_resend_result_to_public,
     webhook_to_public,
 )
 from .._internal.path import Identifier, path_segment
 from ..paged_result import ListRequest, PagedResult
-from .types import CreateWebhookRequest, CreateWebhookResult, UpdateWebhookRequest, Webhook
+from .types import (
+    CreateWebhookRequest,
+    CreateWebhookResult,
+    ListWebhookDeliveriesRequest,
+    UpdateWebhookRequest,
+    Webhook,
+    WebhookDelivery,
+    WebhookResendResult,
+)
+
+_RESEND_ATTEMPT_TIMEOUT_MS = 30_000
+"""O reenvio espera a resposta da URL do integrador (até 15 s do lado da Credicarro)."""
 
 
 class WebhooksClient:
@@ -38,6 +52,36 @@ class WebhooksClient:
         """Exclui o webhook (`DELETE v1/webhook/{id}`, `204`)."""
         response = self._executor.delete(f"v1/webhook/{path_segment(webhook_id)}")
         ApiRequestExecutor.ensure_success(response)
+
+    def list_deliveries(self, request: Optional[ListWebhookDeliveriesRequest] = None) -> PagedResult[WebhookDelivery]:
+        """Histórico de envios, com o corpo enviado, a resposta da sua URL e o status HTTP (`GET v1/webhook/audit`)."""
+        request = request or ListWebhookDeliveriesRequest()
+
+        path = (
+            add_webhook_delivery_filter(QueryStringBuilder(), request)
+            .add("pagina_inicial", request.page)
+            .add("limite", request.page_size)
+            .build("v1/webhook/audit")
+        )
+        response = self._executor.get(path)
+        ApiRequestExecutor.ensure_success(response)
+
+        return paged_result_from_wire(response.body, webhook_delivery_to_public)
+
+    def resend(self, delivery_id: Identifier) -> WebhookResendResult:
+        """Reenvia um envio do histórico (`POST v1/webhook/audit/{id}/resend`).
+
+        Uma única tentativa, sem repetição automática (repetir dispararia o webhook de novo). O reenvio chega à sua
+        URL com uma `Idempotency-Key` nova (`{id_mensagem}:{id_webhook}:{id_tentativa}`).
+        """
+        response = self._executor.post(
+            f"v1/webhook/audit/{path_segment(delivery_id)}/resend",
+            None,
+            attempt_timeout_ms=_RESEND_ATTEMPT_TIMEOUT_MS,
+        )
+        ApiRequestExecutor.ensure_success(response)
+
+        return webhook_resend_result_to_public(response.body)
 
     def list(self, request: Optional[ListRequest] = None) -> PagedResult[Webhook]:
         """Lista os webhooks do parceiro, paginados (`GET v1/webhook`)."""

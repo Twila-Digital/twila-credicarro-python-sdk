@@ -101,6 +101,31 @@ opcoes = client.simulations.create_financing(
 proposal_id = client.proposals.create(CreateProposalRequest(cpf=cpf, simulation_id=opcoes[0].simulation_id))
 ```
 
+**Retorno de comissão (opcional).** Consulte as faixas da loja e envie `commission_return` dentro da faixa da modalidade (`target` `STORE`):
+
+```python
+from twila_credicarro import CommissionReturnTarget, CreateFinancingSimulationRequest, SimulationType
+
+faixas = client.simulations.get_commission_returns("11.222.333/0001-81")
+faixa = next(
+    (f for f in faixas if f.type == SimulationType.FINANCING and f.target == CommissionReturnTarget.STORE), None
+)
+opcoes = client.simulations.create_financing(
+    CreateFinancingSimulationRequest(
+        cpf="12345678909",
+        license_plate="ABC1D23",
+        vehicle_amount=45000,
+        down_payment=9000,
+        state="SP",
+        is_zero_km=False,
+        store_cnpj="11.222.333/0001-81",
+        commission_return=faixa.maximum_return if faixa else None,
+    )
+)
+```
+
+Lista vazia significa loja sem retorno configurado. Fora da faixa, a API retorna `422 Store.CommissionReturn.OutOfRange`; sem faixa configurada, `422 Store.CommissionReturn.NotConfigured`. As rotas v1 não aceitam o campo.
+
 Os identificadores (`proposal_id`, `simulation_id`, `webhook_id`) são aceitos como `str` ou `uuid.UUID`, e as respostas devolvem `str`. `date_of_birth` aceita texto ISO-8601 com offset, `date` ou `datetime` (sem fuso, o SDK usa `-03:00`, o horário de Brasília da documentação).
 
 ### O que o integrador precisa fazer agora
@@ -144,9 +169,9 @@ client.proposals.upload_document(
 | Cliente | Métodos |
 | --- | --- |
 | `client.customers` | `upsert`, `create`, `upsert_address`, `upsert_professional_data` |
-| `client.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing`, `get`, `list` |
+| `client.simulations` | `get_financing_range`, `get_refinancing_range`, `get_commission_returns`, `create_financing`, `create_refinancing`, `get`, `list` |
 | `client.proposals` | `create`, `get`, `list`, `send_vehicle_details`, `send_deposit_account`, `upload_document` |
-| `client.webhooks` | `create`, `list`, `update`, `delete` |
+| `client.webhooks` | `create`, `list`, `update`, `delete`, `list_deliveries`, `resend` |
 | `client.v1.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing` (sem `cnpjLoja`) |
 | `client.v1.proposals` | `create`, `get` (retorna `ProposalSummary`) |
 
@@ -182,7 +207,7 @@ options = CredicarroClientOptions(
 
 ## Paginação
 
-`proposals.list`, `simulations.list` e `webhooks.list` retornam um `PagedResult[T]` — sem auto-paginação, você controla o avanço de página. `ListRequest(page=1, page_size=10)` aceita `page >= 1` e `page_size` de 1 a 100 (`pagina_inicial` e `limite` na API) e lança `ValueError` fora disso.
+`proposals.list`, `simulations.list`, `webhooks.list` e `webhooks.list_deliveries` retornam um `PagedResult[T]` — sem auto-paginação, você controla o avanço de página. `ListRequest(page=1, page_size=10)` aceita `page >= 1` e `page_size` de 1 a 100 (`pagina_inicial` e `limite` na API) e lança `ValueError` fora disso.
 
 ```python
 from twila_credicarro import ListRequest
@@ -249,6 +274,22 @@ resultado = client.webhooks.create(
 
 guarde_com_seguranca(resultado.signing_secret)  # só vem nesta resposta
 ```
+
+### Histórico e reenvio
+
+```python
+from datetime import date
+
+from twila_credicarro import ListWebhookDeliveriesRequest
+
+falhas = client.webhooks.list_deliveries(
+    ListWebhookDeliveriesRequest(initial_date=date(2026, 11, 1), final_date=date(2026, 11, 7), status_code=500)
+)
+
+resultado = client.webhooks.resend(falhas.items[0].id)
+```
+
+Os filtros do histórico são opcionais, e `date` vale pelo dia inteiro. `resend` reenvia o mesmo corpo e é uma única tentativa: o SDK **não** o repete automaticamente (repetir dispararia o webhook de novo) e espera até 30 s pela resposta. O reenvio chega com uma `Idempotency-Key` nova (`{id_mensagem}:{id_webhook}:{id_tentativa}`); para tratá-lo como a mesma notificação, deduplique pelo prefixo `{id_mensagem}:{id_webhook}`. `status_code` vem `None` quando a sua URL não respondeu.
 
 ### Validando as notificações
 

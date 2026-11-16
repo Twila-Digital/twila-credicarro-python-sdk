@@ -69,6 +69,9 @@ SDK_OPERATIONS = {
     ("get", "/v1/webhook"),
     ("put", "/v1/webhook/{webhookId}"),
     ("delete", "/v1/webhook/{webhookId}"),
+    ("get", "/v1/webhook/audit"),
+    ("post", "/v1/webhook/audit/{auditWebhookId}/resend"),
+    ("get", "/v2/proposal/simulation/commission-returns"),
     ("get", "/v2/proposal/simulation/range/financing"),
     ("get", "/v2/proposal/simulation/range/refinancing"),
     ("post", "/v2/proposal/simulation/financing"),
@@ -88,6 +91,17 @@ QUERY_PARAMETERS = {
     ("get", "/v1/proposal/simulation/range/refinancing"): {"placa"},
     ("get", "/v2/proposal/simulation/range/financing"): {"placa", "cnpjLoja"},
     ("get", "/v2/proposal/simulation/range/refinancing"): {"placa", "cnpjLoja"},
+    ("get", "/v2/proposal/simulation/commission-returns"): {"cnpjLoja"},
+    ("get", "/v1/webhook/audit"): {
+        "data_inicial",
+        "data_final",
+        "id_proposta",
+        "id_simulacao",
+        "numero_proposta",
+        "status_http",
+        "pagina_inicial",
+        "limite",
+    },
 }
 
 _ADDRESS_FULL = CustomerAddress(
@@ -144,14 +158,14 @@ REQUESTS: list[tuple[str, str, dict[str, Any]]] = [
         "post",
         "/v2/proposal/simulation/financing",
         simulation_mapper.financing_request_to_wire(
-            CreateFinancingSimulationRequest("12345678909", "ABC1D23", 45000, 5000, "SP", False, "11222333000181")
+            CreateFinancingSimulationRequest("12345678909", "ABC1D23", 45000, 5000, "SP", False, "11222333000181", 2)
         ),
     ),
     (
         "post",
         "/v2/proposal/simulation/refinancing",
         simulation_mapper.refinancing_request_to_wire(
-            CreateRefinancingSimulationRequest("12345678909", "ABC1D23", 25000, "11222333000181")
+            CreateRefinancingSimulationRequest("12345678909", "ABC1D23", 25000, "11222333000181", 2)
         ),
     ),
     (
@@ -269,7 +283,7 @@ def test_idempotency_key_policy_matches_the_openapi(spec: dict[str, Any], method
     header = next(
         (p for p in parameters(spec, operation) if p["in"] == "header" and p["name"] == "Idempotency-Key"), None
     )
-    sdk_path = path.replace("{propostaId}", "abc").lstrip("/")
+    sdk_path = path.replace("{propostaId}", "abc").replace("{auditWebhookId}", "abc").lstrip("/")
 
     if path == "/v1/customer/unified":
         assert header is not None
@@ -364,6 +378,27 @@ RESPONSES: list[tuple[str, str, str, Callable[[Any], Any], frozenset[str]]] = [
     ("post", "/v2/proposal/simulation/refinancing", "201", simulation_mapper.simulation_options_to_public, frozenset()),
     ("post", "/v1/webhook", "201", webhook_mapper.create_webhook_result_to_public, frozenset()),
     ("get", "/v1/webhook", "200", _paged_webhooks, frozenset()),
+    (
+        "get",
+        "/v1/webhook/audit",
+        "200",
+        lambda w: paged_result_from_wire(w, webhook_mapper.webhook_delivery_to_public),
+        frozenset(),
+    ),
+    (
+        "post",
+        "/v1/webhook/audit/{auditWebhookId}/resend",
+        "200",
+        webhook_mapper.webhook_resend_result_to_public,
+        frozenset(),
+    ),
+    (
+        "get",
+        "/v2/proposal/simulation/commission-returns",
+        "200",
+        simulation_mapper.commission_returns_to_public,
+        frozenset(),
+    ),
 ]
 
 
