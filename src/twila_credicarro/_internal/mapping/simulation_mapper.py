@@ -13,7 +13,14 @@ from ...simulations.types import (
     SimulationType,
     SimulationVehicle,
 )
-from ...v1.types import CreateFinancingSimulationV1Request, CreateRefinancingSimulationV1Request
+from ...v1.types import (
+    CreateFinancingSimulationV1Request,
+    CreateFinancingWithoutCpfRequest,
+    CreateRefinancingSimulationV1Request,
+    CreateRefinancingWithoutCpfRequest,
+    FinancingWithoutCpfOption,
+    RefinancingWithoutCpfOption,
+)
 from ..datetime_parsing import parse_iso_datetime
 from .wire import (
     as_dict,
@@ -61,11 +68,30 @@ def financing_v1_request_to_wire(request: CreateFinancingSimulationV1Request) ->
     }
 
 
+def financing_without_cpf_request_to_wire(request: CreateFinancingWithoutCpfRequest) -> dict[str, Any]:
+    wire: dict[str, Any] = {
+        "placa": request.license_plate,
+        "valorVeiculo": request.vehicle_amount,
+        "uf": request.state,
+    }
+    if request.down_payment is not None:
+        wire["valorEntrada"] = request.down_payment
+    return wire
+
+
 def refinancing_v1_request_to_wire(request: CreateRefinancingSimulationV1Request) -> dict[str, Any]:
     return {
         "cpf": request.cpf,
         "placa": request.license_plate,
         "valorSolicitado": request.requested_amount,
+    }
+
+
+def refinancing_without_cpf_request_to_wire(request: CreateRefinancingWithoutCpfRequest) -> dict[str, Any]:
+    return {
+        "placa": request.license_plate,
+        "valorSolicitado": request.requested_amount,
+        "uf": request.state,
     }
 
 
@@ -95,6 +121,57 @@ def refinancing_range_to_public(wire: Any) -> list[RefinancingRangeOption]:
 def simulation_options_to_public(wire: Any) -> list[SimulationOption]:
     root = as_dict(wire, "a resposta da simulação")
     return [_option_to_public(item) for item in _items(root, "simulacoes")]
+
+
+def financing_without_cpf_options_to_public(wire: Any) -> list[FinancingWithoutCpfOption]:
+    root = as_dict(wire, "a resposta da simulação sem CPF")
+    return [
+        FinancingWithoutCpfOption(
+            requested_amount=req_float(item, "valor_solicitado"),
+            term=req_int(item, "prazo"),
+            installment_amount=req_float(item, "valor_parcela"),
+            tac_amount=req_float(item, "valor_tac"),
+            boleto_amount=req_float(item, "valor_boleto"),
+            insurance_amount=req_float(item, "valor_seguro"),
+            iof_amount=req_float(item, "valor_iof"),
+            iof_rate=req_float(item, "percentual_iof"),
+            total_credit_amount=req_float(item, "valor_credito_total"),
+            total_debt_amount=req_float(item, "valor_divida_total"),
+            monthly_cet=req_float(item, "percentual_cet_mensal"),
+            annual_cet=req_float(item, "percentual_cet_anual"),
+            monthly_interest_rate=req_float(item, "percentual_juros_mensal"),
+            annual_interest_rate=req_float(item, "percentual_juros_anual"),
+            minimum_down_payment=req_float(item, "valor_entrada_minima"),
+            approximate_daily_retention=opt_float(item, "valor_retencao_diaria_aproximado"),
+        )
+        for item in _items(root, "cotacoes")
+    ]
+
+
+def refinancing_without_cpf_options_to_public(wire: Any) -> list[RefinancingWithoutCpfOption]:
+    root = as_dict(wire, "a resposta da simulação de refinanciamento sem CPF")
+    return [
+        RefinancingWithoutCpfOption(
+            requested_amount=req_float(item, "valor_solicitado"),
+            term=req_int(item, "prazo"),
+            installment_amount=req_float(item, "valor_parcela"),
+            tac_amount=req_float(item, "valor_tac"),
+            boleto_amount=req_float(item, "valor_boleto"),
+            insurance_amount=req_float(item, "valor_seguro"),
+            iof_amount=req_float(item, "valor_iof"),
+            iof_rate=req_float(item, "percentual_iof"),
+            total_credit_amount=req_float(item, "valor_credito_total"),
+            total_debt_amount=req_float(item, "valor_divida_total"),
+            monthly_cet=req_float(item, "percentual_cet_mensal"),
+            annual_cet=req_float(item, "percentual_cet_anual"),
+            monthly_interest_rate=req_float(item, "percentual_juros_mensal"),
+            annual_interest_rate=req_float(item, "percentual_juros_anual"),
+            minimum_amount=req_float(item, "valor_minimo_refinanciavel"),
+            maximum_amount=req_float(item, "valor_maximo_refinanciavel"),
+            approximate_daily_retention=opt_float(item, "valor_retencao_diaria_aproximado"),
+        )
+        for item in _items(root, "cotacoes")
+    ]
 
 
 def simulation_to_public(wire: dict[str, Any]) -> Simulation:

@@ -69,7 +69,14 @@ from .simulations.types import (
     SimulationVehicle,
 )
 from .v1.client import V1Client, V1ProposalsClient, V1SimulationsClient
-from .v1.types import CreateFinancingSimulationV1Request, CreateRefinancingSimulationV1Request
+from .v1.types import (
+    CreateFinancingSimulationV1Request,
+    CreateFinancingWithoutCpfRequest,
+    CreateRefinancingSimulationV1Request,
+    CreateRefinancingWithoutCpfRequest,
+    FinancingWithoutCpfOption,
+    RefinancingWithoutCpfOption,
+)
 from .webhooks.client import WebhooksClient
 from .webhooks.types import (
     CreateWebhookRequest,
@@ -158,7 +165,11 @@ __all__ = [
     "V1ProposalsClient",
     "V1SimulationsClient",
     "CreateFinancingSimulationV1Request",
+    "CreateFinancingWithoutCpfRequest",
+    "FinancingWithoutCpfOption",
     "CreateRefinancingSimulationV1Request",
+    "CreateRefinancingWithoutCpfRequest",
+    "RefinancingWithoutCpfOption",
     "WebhooksClient",
     "CreateWebhookRequest",
     "CreateWebhookResult",

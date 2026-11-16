@@ -19,9 +19,11 @@ from twila_credicarro import (
     CreateCustomerRequest,
     CreateFinancingSimulationRequest,
     CreateFinancingSimulationV1Request,
+    CreateFinancingWithoutCpfRequest,
     CreateProposalRequest,
     CreateRefinancingSimulationRequest,
     CreateRefinancingSimulationV1Request,
+    CreateRefinancingWithoutCpfRequest,
     CreateWebhookRequest,
     CustomerAddress,
     DepositAccount,
@@ -64,7 +66,9 @@ SDK_OPERATIONS = {
     ("get", "/v1/proposal/simulation/range/financing"),
     ("get", "/v1/proposal/simulation/range/refinancing"),
     ("post", "/v1/proposal/simulation/financing"),
+    ("post", "/v1/proposal/simulation/financing/without-cpf"),
     ("post", "/v1/proposal/simulation/refinancing"),
+    ("post", "/v1/proposal/simulation/refinancing/without-cpf"),
     ("post", "/v1/webhook"),
     ("get", "/v1/webhook"),
     ("put", "/v1/webhook/{webhookId}"),
@@ -163,9 +167,30 @@ REQUESTS: list[tuple[str, str, dict[str, Any]]] = [
     ),
     (
         "post",
+        "/v1/proposal/simulation/financing/without-cpf",
+        simulation_mapper.financing_without_cpf_request_to_wire(
+            CreateFinancingWithoutCpfRequest("ABC1D23", 45000, "SP", 5000)
+        ),
+    ),
+    (
+        "post",
+        "/v1/proposal/simulation/financing/without-cpf",
+        simulation_mapper.financing_without_cpf_request_to_wire(
+            CreateFinancingWithoutCpfRequest("ABC1D23", 45000, "SP")
+        ),
+    ),
+    (
+        "post",
         "/v1/proposal/simulation/refinancing",
         simulation_mapper.refinancing_v1_request_to_wire(
             CreateRefinancingSimulationV1Request("12345678909", "ABC1D23", 25000)
+        ),
+    ),
+    (
+        "post",
+        "/v1/proposal/simulation/refinancing/without-cpf",
+        simulation_mapper.refinancing_without_cpf_request_to_wire(
+            CreateRefinancingWithoutCpfRequest("ABC1D23", 25000, "SP")
         ),
     ),
     (
@@ -359,7 +384,21 @@ RESPONSES: list[tuple[str, str, str, Callable[[Any], Any], frozenset[str]]] = [
         frozenset(),
     ),
     ("post", "/v1/proposal/simulation/financing", "201", simulation_mapper.simulation_options_to_public, frozenset()),
+    (
+        "post",
+        "/v1/proposal/simulation/financing/without-cpf",
+        "200",
+        simulation_mapper.financing_without_cpf_options_to_public,
+        frozenset(),
+    ),
     ("post", "/v1/proposal/simulation/refinancing", "201", simulation_mapper.simulation_options_to_public, frozenset()),
+    (
+        "post",
+        "/v1/proposal/simulation/refinancing/without-cpf",
+        "200",
+        simulation_mapper.refinancing_without_cpf_options_to_public,
+        frozenset(),
+    ),
     ("post", "/v2/proposal/simulation/financing", "201", simulation_mapper.simulation_options_to_public, frozenset()),
     ("post", "/v2/proposal/simulation/refinancing", "201", simulation_mapper.simulation_options_to_public, frozenset()),
     ("post", "/v1/webhook", "201", webhook_mapper.create_webhook_result_to_public, frozenset()),

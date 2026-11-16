@@ -147,16 +147,44 @@ client.proposals.upload_document(
 | `client.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing`, `get`, `list` |
 | `client.proposals` | `create`, `get`, `list`, `send_vehicle_details`, `send_deposit_account`, `upload_document` |
 | `client.webhooks` | `create`, `list`, `update`, `delete` |
-| `client.v1.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_refinancing` (sem `cnpjLoja`) |
+| `client.v1.simulations` | `get_financing_range`, `get_refinancing_range`, `create_financing`, `create_financing_without_cpf`, `create_refinancing`, `create_refinancing_without_cpf` (sem `cnpjLoja`) |
 | `client.v1.proposals` | `create`, `get` (retorna `ProposalSummary`) |
 
 Todas as rotas públicas do `openapi.yaml` (v1 e v2) têm um método. Prefira a v2 (`client.simulations`, `client.proposals`), que seleciona a loja pelo CNPJ e traz o retrato completo da proposta; `client.v1` existe para integrações que ainda usam as rotas v1.
+
+### Simulação de financiamento sem CPF
+
+`client.v1.simulations.create_financing_without_cpf` calcula as parcelas só com placa, valor do veículo e UF, sem CPF e sem cadastro de cliente (usa a loja de integração do parceiro). Nada é gravado: as opções não têm `simulation_id` e não servem para criar proposta. `down_payment` é opcional; omitido, a API usa a entrada mínima da taxa da loja. A chamada não usa `Idempotency-Key` e é segura para repetir.
+
+```python
+from twila_credicarro import CreateFinancingWithoutCpfRequest
+
+opcoes = client.v1.simulations.create_financing_without_cpf(
+    CreateFinancingWithoutCpfRequest(license_plate="ABC1D23", vehicle_amount=45000, state="SP")
+)
+for opcao in opcoes:
+    print(opcao.term, opcao.installment_amount, opcao.minimum_down_payment)
+```
+
+### Simulação de refinanciamento sem CPF
+
+`client.v1.simulations.create_refinancing_without_cpf` calcula as parcelas do refinanciamento só com placa, valor solicitado e UF (`state`, obrigatória: define as taxas e o custo de registro), sem CPF e sem cadastro de cliente (usa a loja de integração do parceiro). Nada é gravado: as opções não têm `simulation_id` e não servem para criar proposta; só voltam os prazos em cuja faixa o valor cabe (`minimum_amount` e `maximum_amount` trazem a faixa do prazo). A chamada não usa `Idempotency-Key` e é segura para repetir.
+
+```python
+from twila_credicarro import CreateRefinancingWithoutCpfRequest
+
+opcoes = client.v1.simulations.create_refinancing_without_cpf(
+    CreateRefinancingWithoutCpfRequest(license_plate="ABC1D23", requested_amount=25000, state="SP")
+)
+for opcao in opcoes:
+    print(opcao.term, opcao.installment_amount, opcao.minimum_amount, opcao.maximum_amount)
+```
 
 ## Idempotência e repetição de chamadas
 
 - **`Idempotency-Key` automática** (um UUID por chamada lógica, **o mesmo em todas as tentativas**): `customers.create`, `upsert_address`, `upsert_professional_data`, as simulações (v1 e v2), `proposals.create` (v1 e v2) e `upload_document`.
 - **`customers.upsert` nunca recebe chave automática.** Com chave, a rota só cria (CPF existente → `409 Cpf.CpfAlreadyAdded`); sem chave, faz upsert. Por isso, sem `idempotency_key` explícita a chamada **não é repetida** em caso de falha; com ela, passa a ser repetida com a mesma chave.
-- **Repetições seguras:** `GET`, a geração do token, `POST` com `Idempotency-Key`, `send_vehicle_details` e `send_deposit_account` (reenviar substitui), `PUT`/`DELETE` de webhook. `webhooks.create` **nunca** é repetido.
+- **Repetições seguras:** `GET`, a geração do token, `v1.simulations.create_financing_without_cpf` e `create_refinancing_without_cpf` (não usam `Idempotency-Key`: nada é gravado), `POST` com `Idempotency-Key`, `send_vehicle_details` e `send_deposit_account` (reenviar substitui), `PUT`/`DELETE` de webhook. `webhooks.create` **nunca** é repetido.
 - **Status repetidos:** `408`, `429` (respeitando `Retry-After` em segundos ou data HTTP; valor inválido, ≤ 0 ou não finito é ignorado, e o máximo considerado é 24 h), `500` (padrão `retry_on_500=True`, porque a documentação manda repetir `500` com a mesma chave), `502`, `503`, `504`, falha de rede e timeout da tentativa. Nenhum outro `4xx` é repetido.
 - Se o `Retry-After` for maior que o orçamento restante, o SDK **não espera**: lança logo o `CredicarroRateLimitError` com `retry_after_ms`. Toda espera é limitada ao orçamento restante.
 - Redirecionamentos (`3xx`) não são seguidos, na API e no token: viram `CredicarroApiError`.
